@@ -25,3 +25,10 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+npm-debug.log
+yarn-error.log
+bootstrap/compiled.php
+app/storage/
+public_html/storage
+public_html/hot
+/.vagrant
