@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Auth\KhanzaUser;
+use App\Auth\KhanzaUserProvider;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +23,20 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Auth::provider('khanza', fn () => new KhanzaUserProvider);
+
+        // Ability = nama kolom permission di tabel `user` (lihat config/khanza.php).
+        // Admin Utama boleh semuanya, seperti di Khanza.
+        Gate::before(function ($user, string $ability) {
+            if (! $user instanceof KhanzaUser) {
+                return null;
+            }
+
+            if ($user->isAdmin) {
+                return true;
+            }
+
+            return $user->knowsPermission($ability) ? $user->hasPermission($ability) : null;
+        });
     }
 }

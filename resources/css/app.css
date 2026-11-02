@@ -1,10 +1,36 @@
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/livewire/src/Features/SupportPagination/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../views/**/*.blade.php';
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Palet SIMRS: hijau #5D9253 (brand-500), hijau tua #557945 (brand-600), kuning #FFCB3D (accent-400) */
+    --color-brand-50: #f2f7f0;
+    --color-brand-100: #e2eedd;
+    --color-brand-200: #c5ddbd;
+    --color-brand-300: #a0c795;
+    --color-brand-400: #7cae70;
+    --color-brand-500: #5d9253;
+    --color-brand-600: #557945;
+    --color-brand-700: #456238;
+    --color-brand-800: #384f2f;
+    --color-brand-900: #2e4127;
+
+    --color-accent-50: #fffaeb;
+    --color-accent-100: #fff2c7;
+    --color-accent-200: #ffe590;
+    --color-accent-300: #ffd85f;
+    --color-accent-400: #ffcb3d;
+    --color-accent-500: #f5b311;
+    --color-accent-600: #d98c06;
+    --color-accent-700: #b46409;
+}
+
+[x-cloak] {
+    display: none !important;
 }

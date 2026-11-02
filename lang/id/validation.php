@@ -1,0 +1,53 @@
+<?php
+
+return [
+    'accepted' => ':attribute harus disetujui.',
+    'after' => ':attribute harus tanggal setelah :date.',
+    'after_or_equal' => ':attribute harus tanggal setelah atau sama dengan :date.',
+    'alpha_num' => ':attribute hanya boleh berisi huruf dan angka.',
+    'array' => ':attribute harus berupa daftar.',
+    'before' => ':attribute harus tanggal sebelum :date.',
+    'before_or_equal' => ':attribute harus tanggal sebelum atau sama dengan :date.',
+    'between' => [
+        'numeric' => ':attribute harus antara :min dan :max.',
+        'string' => ':attribute harus antara :min dan :max karakter.',
+        'array' => ':attribute harus berisi :min sampai :max item.',
+    ],
+    'boolean' => ':attribute harus bernilai ya atau tidak.',
+    'confirmed' => 'Konfirmasi :attribute tidak cocok.',
+    'date' => ':attribute bukan tanggal yang valid.',
+    'date_format' => ':attribute tidak sesuai format :format.',
+    'different' => ':attribute dan :other harus berbeda.',
+    'digits' => ':attribute harus :digits digit.',
+    'digits_between' => ':attribute harus antara :min dan :max digit.',
+    'email' => ':attribute harus alamat email yang valid.',
+    'exists' => ':attribute yang dipilih tidak valid.',
+    'in' => ':attribute yang dipilih tidak valid.',
+    'integer' => ':attribute harus bilangan bulat.',
+    'max' => [
+        'numeric' => ':attribute maksimal :max.',
+        'string' => ':attribute maksimal :max karakter.',
+        'array' => ':attribute maksimal :max item.',
+    ],
+    'min' => [
+        'numeric' => ':attribute minimal :min.',
+        'string' => ':attribute minimal :min karakter.',
+        'array' => ':attribute minimal :min item.',
+    ],
+    'not_in' => ':attribute yang dipilih tidak valid.',
+    'numeric' => ':attribute harus berupa angka.',
+    'regex' => 'Format :attribute tidak valid.',
+    'required' => ':attribute wajib diisi.',
+    'required_if' => ':attribute wajib diisi bila :other bernilai :value.',
+    'required_with' => ':attribute wajib diisi bila :values ada.',
+    'same' => ':attribute dan :other harus sama.',
+    'size' => [
+        'numeric' => ':attribute harus :size.',
+        'string' => ':attribute harus :size karakter.',
+        'array' => ':attribute harus berisi :size item.',
+    ],
+    'string' => ':attribute harus berupa teks.',
+    'unique' => ':attribute sudah dipakai.',
+
+    'attributes' => [],
+];

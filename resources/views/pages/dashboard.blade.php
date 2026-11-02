@@ -1,48 +1,48 @@
 <?php
 
+use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Title('Dashboard SIMRS')] class extends Component
+new #[Title('Dashboard')] class extends Component
 {
-    public int $antrian = 0;
-
-    public function tambahAntrian(): void
+    #[Computed]
+    public function ringkasan(): array
     {
-        $this->antrian++;
-    }
+        $hariIni = today()->toDateString();
 
-    public function resetAntrian(): void
-    {
-        $this->antrian = 0;
+        return [
+            'igd' => DB::table('reg_periksa')->where('tgl_registrasi', $hariIni)->where('kd_poli', config('khanza.kd_poli_igd'))->count(),
+            'ralan' => DB::table('reg_periksa')->where('tgl_registrasi', $hariIni)->where('status_lanjut', 'Ralan')->where('stts', '<>', 'Batal')->count(),
+            'ranap' => DB::table('kamar_inap')->where('stts_pulang', '-')->count(),
+            'kamar_kosong' => DB::table('kamar')->where('status', 'KOSONG')->where('statusdata', '1')->count(),
+        ];
     }
 };
 ?>
 
-<div class="min-h-screen bg-slate-100 p-6">
-    <div class="mx-auto max-w-3xl space-y-6">
-        <header class="rounded-xl bg-emerald-600 p-6 text-white shadow">
-            <h1 class="text-2xl font-semibold">SIMRS Web</h1>
-            <p class="text-emerald-100">Laravel + Blade + Livewire + Alpine.js + Tailwind</p>
-        </header>
+<div>
+    <x-ui.page-header title="Selamat datang, {{ auth()->user()->nama }}" subtitle="Ringkasan pelayanan hari ini, {{ now()->translatedFormat('d F Y') }}." />
 
-        {{-- Livewire: state disimpan di server --}}
-        <section class="rounded-xl bg-white p-6 shadow">
-            <h2 class="mb-2 font-semibold text-slate-700">Livewire</h2>
-            <p class="mb-4 text-slate-600">Nomor antrian: <span class="text-3xl font-bold text-emerald-600">{{ $antrian }}</span></p>
-            <div class="flex gap-2">
-                <button wire:click="tambahAntrian" class="rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700">Ambil Antrian</button>
-                <button wire:click="resetAntrian" class="rounded-lg bg-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-300">Reset</button>
-            </div>
-        </section>
+    @php
+        $kartu = [
+            ['label' => 'Registrasi IGD hari ini', 'value' => $this->ringkasan['igd'], 'route' => 'igd.index', 'tone' => 'bg-red-50 text-red-700'],
+            ['label' => 'Kunjungan rawat jalan hari ini', 'value' => $this->ringkasan['ralan'], 'route' => 'rawat-jalan.index', 'tone' => 'bg-brand-50 text-brand-700'],
+            ['label' => 'Pasien sedang dirawat inap', 'value' => $this->ringkasan['ranap'], 'route' => 'rawat-inap.index', 'tone' => 'bg-sky-50 text-sky-700'],
+            ['label' => 'Kamar kosong', 'value' => $this->ringkasan['kamar_kosong'], 'route' => 'rawat-inap.index', 'tone' => 'bg-accent-50 text-accent-700'],
+        ];
+    @endphp
 
-        {{-- Alpine.js: state di browser (Alpine sudah dibundel oleh Livewire) --}}
-        <section x-data="{ open: false }" class="rounded-xl bg-white p-6 shadow">
-            <h2 class="mb-2 font-semibold text-slate-700">Alpine.js</h2>
-            <button x-on:click="open = !open" class="rounded-lg bg-sky-600 px-4 py-2 text-white hover:bg-sky-700">
-                <span x-text="open ? 'Sembunyikan' : 'Tampilkan'"></span> Info
-            </button>
-            <p x-show="open" x-transition class="mt-4 text-slate-600">Alpine.js berjalan tanpa request ke server.</p>
-        </section>
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        @foreach ($kartu as $item)
+            <a href="{{ Route::has($item['route']) ? route($item['route']) : '#' }}" wire:navigate class="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-300 hover:shadow">
+                <div class="text-sm text-slate-500">{{ $item['label'] }}</div>
+                <div class="mt-3 flex items-end justify-between">
+                    <span class="text-3xl font-semibold text-slate-800">{{ number_format($item['value']) }}</span>
+                    <span class="rounded-lg px-2 py-1 text-xs font-medium {{ $item['tone'] }}">Lihat &rarr;</span>
+                </div>
+            </a>
+        @endforeach
     </div>
 </div>

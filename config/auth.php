@@ -1,7 +1,5 @@
 <?php
 
-use App\Models\User;
-
 return [
 
     /*
@@ -62,9 +60,9 @@ return [
     */
 
     'providers' => [
+        // Tabel admin + user Khanza, lihat App\Auth\KhanzaUserProvider.
         'users' => [
-            'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
+            'driver' => 'khanza',
         ],
 
         // 'users' => [
