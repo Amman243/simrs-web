@@ -31,7 +31,7 @@
                     @php
                         $menu = [
                             ['route' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'M3 12l9-9 9 9M5 10v10h14V10', 'can' => null],
-                            ['route' => 'igd.index', 'label' => 'Registrasi IGD', 'icon' => 'M12 6v12M6 12h12', 'can' => 'igd'],
+                            ['route' => 'registrasi.index', 'label' => 'Registrasi', 'icon' => 'M12 6v12M6 12h12', 'can' => 'akses_registrasi'],
                             ['route' => 'rawat-jalan.index', 'label' => 'Rawat Jalan', 'icon' => 'M4 6h16M4 12h16M4 18h10', 'can' => 'tindakan_ralan'],
                             ['route' => 'rawat-inap.index', 'label' => 'Rawat Inap', 'icon' => 'M3 18v-6a3 3 0 013-3h12a3 3 0 013 3v6M3 14h18M7 9V6', 'can' => 'kamar_inap'],
                         ];

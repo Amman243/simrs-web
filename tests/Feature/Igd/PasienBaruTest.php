@@ -25,8 +25,8 @@ class PasienBaruTest extends TestCase
 
     public function test_halaman_butuh_hak_pasien(): void
     {
-        $this->actingAsKhanza(['igd' => true])->get(route('igd.pasien-baru'))->assertForbidden();
-        $this->actingAsKhanza(['igd' => true, 'pasien' => true])->get(route('igd.pasien-baru'))->assertOk()->assertSee('900001');
+        $this->actingAsKhanza(['igd' => true])->get(route('registrasi.pasien-baru'))->assertForbidden();
+        $this->actingAsKhanza(['igd' => true, 'pasien' => true])->get(route('registrasi.pasien-baru'))->assertOk()->assertSee('900001');
     }
 
     public function test_simpan_pasien_baru_lalu_kembali_ke_registrasi_igd(): void
@@ -34,7 +34,7 @@ class PasienBaruTest extends TestCase
         $this->actingAsKhanza(['igd' => true, 'pasien' => true]);
         $kdPj = DB::table('penjab')->where('status', '1')->value('kd_pj');
 
-        Livewire::test('pages::igd.pasien-baru')
+        Livewire::test('pages::registrasi.pasien-baru')
             ->set('nm_pasien', 'PASIEN UJI IGD')
             ->set('no_ktp', '3201010101010001')
             ->set('jk', 'P')
@@ -51,7 +51,7 @@ class PasienBaruTest extends TestCase
             ->set('namakeluarga', 'SUAMI UJI')
             ->call('simpan')
             ->assertHasNoErrors()
-            ->assertRedirect(route('igd.index', ['pasien' => '900001']));
+            ->assertRedirect(route('registrasi.index', ['pasien' => '900001']));
 
         $p = DB::table('pasien')->where('no_rkm_medis', '900001')->first();
         $this->assertNotNull($p);
@@ -97,7 +97,7 @@ class PasienBaruTest extends TestCase
     {
         $this->actingAsKhanza(['igd' => true, 'pasien' => true]);
 
-        Livewire::test('pages::igd.pasien-baru')
+        Livewire::test('pages::registrasi.pasien-baru')
             ->set('tgl_lahir', '2000-01-01')
             ->call('simpan')
             ->assertHasErrors(['nm_pasien' => 'required', 'kd_pj' => 'required']);
@@ -109,7 +109,7 @@ class PasienBaruTest extends TestCase
     {
         $this->actingAsKhanza(['igd' => true]);
 
-        Livewire::test('pages::igd.pasien-baru')
+        Livewire::test('pages::registrasi.pasien-baru')
             ->set('nm_pasien', 'X')
             ->set('kd_pj', '-')
             ->set('tgl_lahir', '2000-01-01')

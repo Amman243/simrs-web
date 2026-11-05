@@ -70,8 +70,8 @@ class LoginTest extends TestCase
 
     public function test_permission_dicek_di_server(): void
     {
-        $this->actingAsKhanza(['igd' => false])->get(route('igd.index'))->assertForbidden();
-        $this->actingAsKhanza(['igd' => true])->get(route('igd.index'))->assertOk();
+        $this->actingAsKhanza(['igd' => false])->get(route('registrasi.index'))->assertForbidden();
+        $this->actingAsKhanza(['igd' => true])->get(route('registrasi.index'))->assertOk();
     }
 
     public function test_logout(): void

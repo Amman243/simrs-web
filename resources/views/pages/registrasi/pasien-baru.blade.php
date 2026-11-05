@@ -7,10 +7,15 @@ use App\Services\Igd\PesanValidasi;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 new #[Title('Pasien Baru')] class extends Component
 {
+    // ?jenis=ralan|igd → setelah simpan, kembali ke form registrasi jenis tersebut.
+    #[Url(except: '')]
+    public string $jenis = '';
+
     // Identitas
     public string $nm_pasien = '';
 
@@ -206,9 +211,10 @@ new #[Title('Pasien Baru')] class extends Component
             return;
         }
 
-        session()->flash('toast', ['message' => "Pasien baru tersimpan dengan No. RM {$noRm}. Lanjutkan registrasi IGD.", 'type' => 'success']);
+        session()->flash('toast', ['message' => "Pasien baru tersimpan dengan No. RM {$noRm}. Lanjutkan registrasi.", 'type' => 'success']);
 
-        $this->redirect(route('igd.index', ['pasien' => $noRm]), navigate: true);
+        $jenis = in_array($this->jenis, ['ralan', 'igd'], true) ? $this->jenis : null;
+        $this->redirect(route('registrasi.index', array_filter(['pasien' => $noRm, 'baru' => $jenis])), navigate: true);
     }
 };
 ?>
@@ -216,9 +222,9 @@ new #[Title('Pasien Baru')] class extends Component
 <div>
     <x-ui.page-header title="Pasien Baru" subtitle="Daftarkan pasien yang belum memiliki nomor rekam medis.">
         <x-slot:actions>
-            <x-ui.button variant="secondary" href="{{ route('igd.index') }}" wire:navigate>
+            <x-ui.button variant="secondary" href="{{ route('registrasi.index') }}" wire:navigate>
                 <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6" /></svg>
-                Kembali ke IGD
+                Kembali ke Registrasi
             </x-ui.button>
         </x-slot:actions>
     </x-ui.page-header>
@@ -300,7 +306,7 @@ new #[Title('Pasien Baru')] class extends Component
 
                 <div class="flex flex-col gap-2 sm:flex-row xl:flex-col">
                     <x-ui.button type="submit" wire:target="simpan" class="w-full">Simpan &amp; Lanjut Registrasi</x-ui.button>
-                    <x-ui.button variant="secondary" href="{{ route('igd.index') }}" wire:navigate class="w-full">Batal</x-ui.button>
+                    <x-ui.button variant="secondary" href="{{ route('registrasi.index') }}" wire:navigate class="w-full">Batal</x-ui.button>
                 </div>
             </div>
         </div>

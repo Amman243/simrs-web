@@ -38,5 +38,8 @@ class AppServiceProvider extends ServiceProvider
 
             return $user->knowsPermission($ability) ? $user->hasPermission($ability) : null;
         });
+
+        // Modul Registrasi: cukup salah satu hak — registrasi rawat jalan (DlgReg) atau IGD (DlgIGD).
+        Gate::define('akses_registrasi', fn ($user) => $user->can('registrasi') || $user->can('igd'));
     }
 }

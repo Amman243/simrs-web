@@ -12,9 +12,11 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Registrasi IGD gaya Khanza (src/simrskhanza/DlgIGD.java, docs/khanza/02-registrasi-igd.md).
+ * Registrasi kunjungan gaya Khanza: IGD (src/simrskhanza/DlgIGD.java, poli 'IGDK') dan
+ * rawat jalan/poliklinik (src/simrskhanza/DlgReg.java, poli dipilih user). Alur simpan kedua
+ * dialog sama persis kecuali kd_poli & tarif registrasi (docs/khanza/02-registrasi-igd.md).
  *
- * Hak akses (igd / edit_registrasi) dicek di komponen Livewire sebelum memanggil service ini.
+ * Hak akses (igd / registrasi / edit_registrasi) dicek di komponen Livewire sebelum memanggil service ini.
  */
 class RegistrasiIgdService
 {
@@ -31,27 +33,56 @@ class RegistrasiIgdService
 
     public const PESAN_BELUM_LUNAS = 'Pasien masih memiliki tagihan yang belum dibayar. Selesaikan pembayaran di kasir terlebih dahulu..!!';
 
+    public const JENIS_IGD = 'igd';
+
+    public const JENIS_RALAN = 'ralan';
+
     public function kdPoli(): string
     {
         return (string) config('khanza.kd_poli_igd', 'IGDK');
     }
 
+    public function isIgd(?string $kdPoli): bool
+    {
+        return $kdPoli === $this->kdPoli();
+    }
+
+    /**
+     * Poliklinik aktif untuk registrasi rawat jalan (DlgReg: semua poli kecuali IGD).
+     */
+    public function poliRalanOptions(): Collection
+    {
+        return DB::table('poliklinik')
+            ->where('status', '1')
+            ->whereNotIn('kd_poli', [$this->kdPoli(), '-'])
+            ->orderBy('nm_poli')
+            ->pluck('nm_poli', 'kd_poli');
+    }
+
     // ------------------------------------------------------------------
-    // Daftar registrasi IGD
+    // Daftar registrasi
     // ------------------------------------------------------------------
 
     /**
-     * Query daftar registrasi IGD (DlgIGD 13038: reg_periksa.kd_poli='IGDK').
+     * Query daftar registrasi.
+     *  - 'igd'   → DlgIGD 13038 (reg_periksa.kd_poli='IGDK').
+     *  - 'ralan' → DlgReg 6902/17223 (status_lanjut='Ralan' dan kd_poli<>'IGDK').
+     *  - null    → keduanya.
      */
-    public function query(string $tglAwal, string $tglAkhir, string $cari = ''): Builder
+    public function query(string $tglAwal, string $tglAkhir, string $cari = '', ?string $jenis = self::JENIS_IGD): Builder
     {
         $cari = trim($cari);
+        $igd = $this->kdPoli();
 
         return DB::table('reg_periksa')
             ->join('pasien', 'pasien.no_rkm_medis', '=', 'reg_periksa.no_rkm_medis')
             ->leftJoin('dokter', 'dokter.kd_dokter', '=', 'reg_periksa.kd_dokter')
             ->leftJoin('penjab', 'penjab.kd_pj', '=', 'reg_periksa.kd_pj')
-            ->where('reg_periksa.kd_poli', $this->kdPoli())
+            ->leftJoin('poliklinik', 'poliklinik.kd_poli', '=', 'reg_periksa.kd_poli')
+            ->when($jenis === self::JENIS_IGD, fn (Builder $q) => $q->where('reg_periksa.kd_poli', $igd))
+            ->when($jenis === self::JENIS_RALAN, fn (Builder $q) => $q->where('reg_periksa.kd_poli', '<>', $igd)->where('reg_periksa.status_lanjut', 'Ralan'))
+            // Semua: IGD (termasuk yang sudah lanjut ranap, seperti DlgIGD) + rawat jalan.
+            ->when($jenis === null, fn (Builder $q) => $q->where(fn (Builder $q) => $q->where('reg_periksa.kd_poli', $igd)->orWhere('reg_periksa.status_lanjut', 'Ralan')))
             ->whereBetween('reg_periksa.tgl_registrasi', [$tglAwal, $tglAkhir])
             ->when($cari !== '', function (Builder $q) use ($cari) {
                 $q->where(function (Builder $q) use ($cari) {
@@ -65,6 +96,7 @@ class RegistrasiIgdService
                 'reg_periksa.kd_dokter', 'reg_periksa.no_rkm_medis', 'reg_periksa.p_jawab', 'reg_periksa.almt_pj',
                 'reg_periksa.hubunganpj', 'reg_periksa.biaya_reg', 'reg_periksa.stts', 'reg_periksa.stts_daftar',
                 'reg_periksa.kd_pj', 'reg_periksa.umurdaftar', 'reg_periksa.sttsumur', 'reg_periksa.status_bayar',
+                'reg_periksa.kd_poli', 'poliklinik.nm_poli',
                 'pasien.nm_pasien', 'pasien.jk', 'dokter.nm_dokter', 'penjab.png_jawab',
             ])
             ->selectRaw('(select count(*) from kamar_inap where kamar_inap.no_rawat = reg_periksa.no_rawat) as jml_kamar_inap')
@@ -168,9 +200,10 @@ class RegistrasiIgdService
     // ------------------------------------------------------------------
 
     /**
-     * Daftarkan pasien ke IGD (DlgIGD.BtnSimpanActionPerformed, 5040-5149).
+     * Daftarkan pasien ke IGD (DlgIGD.BtnSimpanActionPerformed, 5040-5149) atau ke poliklinik rawat jalan
+     * (DlgReg.BtnSimpanActionPerformed 6793 + isRegistrasi 18071). Tanpa kd_poli → IGD.
      *
-     * @param  array{no_rkm_medis: string, kd_dokter: string, kd_pj: string, tgl_registrasi?: string, jam_reg?: string,
+     * @param  array{no_rkm_medis: string, kd_dokter: string, kd_pj: string, kd_poli?: ?string, tgl_registrasi?: string, jam_reg?: string,
      *     p_jawab?: ?string, hubunganpj?: ?string, almt_pj?: ?string, asal_rujukan?: ?string, alamat_perujuk?: ?string}  $data
      * @return array{no_rawat: string, no_reg: string}
      *
@@ -181,7 +214,7 @@ class RegistrasiIgdService
         $noRm = (string) $data['no_rkm_medis'];
         $tanggal = Carbon::parse($data['tgl_registrasi'] ?? Carbon::today()->toDateString())->startOfDay();
         $jam = $data['jam_reg'] ?? Carbon::now()->format('H:i:s');
-        $kdPoli = $this->kdPoli();
+        $kdPoli = trim((string) ($data['kd_poli'] ?? '')) ?: $this->kdPoli();
 
         return $this->cobaUlangSaatDuplikat(function () use ($data, $noRm, $tanggal, $jam, $kdPoli) {
             $pasien = DB::table('pasien')->where('no_rkm_medis', $noRm)->first(['no_rkm_medis', 'tgl_lahir', 'tgl_daftar']);
@@ -201,7 +234,7 @@ class RegistrasiIgdService
                 throw new IgdException(self::PESAN_BELUM_LUNAS);
             }
 
-            $poli = $this->poliIgd();
+            $poli = $this->poli($kdPoli);
             $sttsDaftar = $pasien->tgl_daftar === $tanggal->toDateString() ? 'Baru' : 'Lama';
             $biaya = $sttsDaftar === 'Lama' ? $poli->registrasilama : $poli->registrasi;
             $statusPoli = DB::table('reg_periksa')->where('no_rkm_medis', $noRm)->where('kd_poli', $kdPoli)->exists() ? 'Lama' : 'Baru';
@@ -252,6 +285,25 @@ class RegistrasiIgdService
     protected function nomorBaru(string $kdDokter, string $kdPoli, CarbonInterface $tanggal): array
     {
         return [NomorRawat::noReg($kdDokter, $kdPoli, $tanggal), NomorRawat::noRawat($tanggal)];
+    }
+
+    /**
+     * Baris poliklinik tujuan registrasi (tarif registrasi / registrasilama).
+     *
+     * @throws IgdException
+     */
+    public function poli(string $kdPoli): object
+    {
+        if ($this->isIgd($kdPoli)) {
+            return $this->poliIgd();
+        }
+
+        $poli = DB::table('poliklinik')->where('kd_poli', $kdPoli)->first(['kd_poli', 'nm_poli', 'registrasi', 'registrasilama', 'status']);
+        if (! $poli || $poli->status !== '1' || $kdPoli === '-') {
+            throw new IgdException('Poliklinik tidak ditemukan.');
+        }
+
+        return $poli;
     }
 
     /**
@@ -318,7 +370,7 @@ class RegistrasiIgdService
         }
 
         DB::transaction(function () use ($noRawat, $stts) {
-            $this->registrasiIgd($noRawat);
+            $this->registrasi($noRawat);
 
             if (Registrasi::punyaKamarInap($noRawat)) {
                 throw new IgdException(self::PESAN_KAMAR_INAP);
@@ -338,7 +390,7 @@ class RegistrasiIgdService
 
     /**
      * Edit registrasi (DlgIGD.BtnEditActionPerformed, 5261-5319): dokter, cara bayar, PJ.
-     * No. rawat & no. reg tidak diubah. biaya_reg dihitung ulang dari poliklinik IGD sesuai stts_daftar.
+     * No. rawat, no. reg & poli tidak diubah. biaya_reg dihitung ulang dari poliklinik registrasi sesuai stts_daftar.
      *
      * @param  array{kd_dokter: string, kd_pj: string, p_jawab?: ?string, hubunganpj?: ?string, almt_pj?: ?string}  $data
      *
@@ -347,7 +399,7 @@ class RegistrasiIgdService
     public function ubah(string $noRawat, array $data): void
     {
         DB::transaction(function () use ($noRawat, $data) {
-            $reg = $this->registrasiIgd($noRawat);
+            $reg = $this->registrasi($noRawat);
 
             if (Registrasi::terkunci($noRawat)) {
                 throw new IgdException(self::PESAN_TERKUNCI);
@@ -359,7 +411,10 @@ class RegistrasiIgdService
                 throw new IgdException('Cara bayar tidak ditemukan.');
             }
 
-            $poli = $this->poliIgd();
+            $poli = $this->isIgd($reg->kd_poli)
+                ? $this->poliIgd()
+                : (DB::table('poliklinik')->where('kd_poli', $reg->kd_poli)->first(['registrasi', 'registrasilama'])
+                    ?? (object) ['registrasi' => $reg->biaya_reg, 'registrasilama' => $reg->biaya_reg]);
 
             DB::table('reg_periksa')->where('no_rawat', $noRawat)->update([
                 'kd_dokter' => $data['kd_dokter'],
@@ -370,6 +425,25 @@ class RegistrasiIgdService
                 'biaya_reg' => (float) ($reg->stts_daftar === 'Lama' ? $poli->registrasilama : $poli->registrasi),
             ]);
         });
+    }
+
+    /**
+     * Registrasi IGD atau rawat jalan (registrasi poli yang sudah lanjut ranap tidak termasuk).
+     *
+     * @throws IgdException
+     */
+    public function registrasi(string $noRawat): object
+    {
+        $reg = DB::table('reg_periksa')
+            ->where('no_rawat', $noRawat)
+            ->where(fn (Builder $q) => $q->where('kd_poli', $this->kdPoli())->orWhere('status_lanjut', 'Ralan'))
+            ->first();
+
+        if (! $reg) {
+            throw new IgdException('Data registrasi tidak ditemukan.');
+        }
+
+        return $reg;
     }
 
     /**

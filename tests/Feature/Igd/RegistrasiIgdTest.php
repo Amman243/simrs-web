@@ -37,24 +37,30 @@ class RegistrasiIgdTest extends TestCase
     public function test_halaman_daftar_tampil_untuk_user_igd(): void
     {
         $this->actingAsKhanza(['igd' => true])
-            ->get(route('igd.index'))
+            ->get(route('registrasi.index'))
             ->assertOk()
             ->assertSee('Registrasi IGD')
-            ->assertSee('Registrasi Baru')
-            ->assertDontSee(route('igd.pasien-baru'));
+            ->assertSee("bukaForm('igd')", false)
+            ->assertDontSee("bukaForm('ralan')", false)
+            ->assertDontSee(route('registrasi.pasien-baru'));
+    }
+
+    public function test_url_lama_igd_dialihkan_ke_registrasi(): void
+    {
+        $this->actingAsKhanza(['igd' => true])->get('/igd')->assertRedirect('/registrasi?jenis=igd');
     }
 
     public function test_tombol_pasien_baru_tampil_bila_punya_hak_pasien(): void
     {
         $this->actingAsKhanza(['igd' => true, 'pasien' => true])
-            ->get(route('igd.index'))
+            ->get(route('registrasi.index'))
             ->assertOk()
-            ->assertSee(route('igd.pasien-baru'));
+            ->assertSee(route('registrasi.pasien-baru'));
     }
 
     public function test_tanpa_hak_igd_ditolak(): void
     {
-        $this->actingAsKhanza(['tindakan_ralan' => true])->get(route('igd.index'))->assertForbidden();
+        $this->actingAsKhanza(['tindakan_ralan' => true])->get(route('registrasi.index'))->assertForbidden();
     }
 
     public function test_daftar_menampilkan_registrasi_igd_sesuai_tanggal_dan_pencarian(): void
@@ -65,7 +71,7 @@ class RegistrasiIgdTest extends TestCase
 
         $this->actingAsKhanza(['igd' => true]);
 
-        Livewire::test('pages::igd.index')
+        Livewire::test('pages::registrasi.index')
             ->set('tglAwal', self::TGL)
             ->set('tglAkhir', self::TGL)
             ->assertSee($hasil['no_rawat'])
@@ -87,8 +93,8 @@ class RegistrasiIgdTest extends TestCase
 
         $this->actingAsKhanza(['igd' => true]);
 
-        Livewire::test('pages::igd.index')
-            ->call('bukaForm')
+        Livewire::test('pages::registrasi.index')
+            ->call('bukaForm', 'igd')
             ->assertSet('showForm', true)
             ->set('tgl_registrasi', self::TGL)
             ->set('jam_reg', '08:15')
@@ -168,8 +174,8 @@ class RegistrasiIgdTest extends TestCase
 
         $this->actingAsKhanza(['igd' => true]);
 
-        Livewire::test('pages::igd.index')
-            ->call('bukaForm')
+        Livewire::test('pages::registrasi.index')
+            ->call('bukaForm', 'igd')
             ->set('tgl_registrasi', self::TGL)
             ->call('pilihPasien', $rm)
             ->set('kd_dokter', $this->kdDokter)
@@ -223,7 +229,7 @@ class RegistrasiIgdTest extends TestCase
         $this->actingAsKhanza(['igd' => true]);
 
         Livewire::withQueryParams(['pasien' => $rm])
-            ->test('pages::igd.index')
+            ->test('pages::registrasi.index')
             ->assertSet('showForm', true)
             ->assertSet('no_rkm_medis', $rm)
             ->assertSet('pasienInfo.no_rkm_medis', $rm);
@@ -234,8 +240,8 @@ class RegistrasiIgdTest extends TestCase
         $rm = $this->pasienBebas();
         $this->actingAsKhanza(['igd' => true]);
 
-        Livewire::test('pages::igd.index')
-            ->call('bukaForm')
+        Livewire::test('pages::registrasi.index')
+            ->call('bukaForm', 'igd')
             ->set('cariPasien', $rm)
             ->assertSee("pilihPasien('{$rm}')", false);
     }
@@ -249,7 +255,7 @@ class RegistrasiIgdTest extends TestCase
         $hasil = $this->service()->daftar($this->dataDaftar($this->pasienBebas()));
         $this->actingAsKhanza(['igd' => true]);
 
-        Livewire::test('pages::igd.index')
+        Livewire::test('pages::registrasi.index')
             ->call('ubahStatus', $hasil['no_rawat'], 'Batal')
             ->assertDispatched('toast', type: 'success');
 
@@ -258,7 +264,7 @@ class RegistrasiIgdTest extends TestCase
         $this->assertEquals(0, $reg->biaya_reg);
 
         // Sudah Batal → terkunci, status tidak bisa diubah lagi.
-        Livewire::test('pages::igd.index')
+        Livewire::test('pages::registrasi.index')
             ->call('ubahStatus', $hasil['no_rawat'], 'Sudah')
             ->assertDispatched('toast', type: 'error');
         $this->assertSame('Batal', DB::table('reg_periksa')->where('no_rawat', $hasil['no_rawat'])->value('stts'));
@@ -290,7 +296,7 @@ class RegistrasiIgdTest extends TestCase
         $hasil = $this->service()->daftar($this->dataDaftar($this->pasienBebas()));
         $this->actingAsKhanza(['igd' => false]);
 
-        Livewire::test('pages::igd.index')
+        Livewire::test('pages::registrasi.index')
             ->call('ubahStatus', $hasil['no_rawat'], 'Batal')
             ->assertForbidden();
 
@@ -306,8 +312,8 @@ class RegistrasiIgdTest extends TestCase
         $hasil = $this->service()->daftar($this->dataDaftar($this->pasienBebas()));
         $this->actingAsKhanza(['igd' => true]);
 
-        Livewire::test('pages::igd.index')->call('edit', $hasil['no_rawat'])->assertForbidden();
-        Livewire::test('pages::igd.index')->set('editNoRawat', $hasil['no_rawat'])->call('simpanEdit')->assertForbidden();
+        Livewire::test('pages::registrasi.index')->call('edit', $hasil['no_rawat'])->assertForbidden();
+        Livewire::test('pages::registrasi.index')->set('editNoRawat', $hasil['no_rawat'])->call('simpanEdit')->assertForbidden();
     }
 
     public function test_edit_registrasi_dengan_hak_edit(): void
@@ -316,7 +322,7 @@ class RegistrasiIgdTest extends TestCase
         $dokterLain = DB::table('dokter')->where('status', '1')->whereNotIn('kd_dokter', ['-', $this->kdDokter])->value('kd_dokter');
         $this->actingAsKhanza(['igd' => true, 'edit_registrasi' => true]);
 
-        Livewire::test('pages::igd.index')
+        Livewire::test('pages::registrasi.index')
             ->call('edit', $hasil['no_rawat'])
             ->assertSet('showForm', true)
             ->set('kd_dokter', $dokterLain)

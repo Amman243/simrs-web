@@ -2,8 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Modul Registrasi IGD. Sudah di dalam grup middleware 'auth' (routes/web.php).
-Route::middleware('can:igd')->prefix('igd')->name('igd.')->group(function () {
-    Route::livewire('/', 'pages::igd.index')->name('index');
-    Route::livewire('/pasien-baru', 'pages::igd.pasien-baru')->middleware('can:pasien')->name('pasien-baru');
-});
+// URL lama Registrasi IGD → modul Registrasi (routes/modules/registrasi.php).
+Route::redirect('/igd', '/registrasi?jenis=igd');
+Route::redirect('/igd/pasien-baru', '/registrasi/pasien-baru');
